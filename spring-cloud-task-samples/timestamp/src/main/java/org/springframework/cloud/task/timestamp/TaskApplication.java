@@ -16,21 +16,19 @@
 
 package org.springframework.cloud.task.timestamp;
 
-
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.OptionalLong;
+import java.util.stream.Stream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.task.configuration.EnableTask;
 import org.springframework.context.annotation.Bean;
+import org.springframework.util.StringUtils;
 
 /**
  * Spring Boot Application that has tasks enabled.
@@ -43,26 +41,22 @@ public class TaskApplication {
 	private static final Log logger = LogFactory.getLog(TaskApplication.class);
 
 	@Bean
-	public TimestampTask timeStampTask() {
-		return new TimestampTask();
+	public CommandLineRunner commandLineRunner() {
+		return args -> {
+			logger.info("Running with args:" + StringUtils.arrayToCommaDelimitedString(args));
+
+			OptionalLong sleep = Stream.of(args)
+				.filter(s -> s.startsWith("--sleep="))
+				.mapToLong(s -> (Long.valueOf(s.split("=")[1])))
+				.findFirst();
+
+			if (sleep.isPresent()) {
+				Thread.sleep(sleep.getAsLong());
+			}
+		};
 	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(TaskApplication.class, args);
-	}
-
-	/**
-	 * A commandline runner that prints a timestamp.
-	 */
-	public class TimestampTask implements CommandLineRunner {
-
-		@Autowired
-		private TimestampTaskProperties config;
-
-		@Override
-		public void run(String... strings) throws Exception {
-			DateFormat dateFormat = new SimpleDateFormat(config.getFormat());
-			logger.info(dateFormat.format(new Date()));
-		}
 	}
 }
